@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Analysis Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 15px; }
+        input, button { font-size: 1.2em; margin-top: 10px; padding: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background: #f7f7f7; }
+    </style>
+</head>
+<body>
+    <h2>📈 Stock Analysis Tool</h2>
+    <p>Enter comma‑separated stock symbols (example: <b>AAPL, MSFT, GOOGL</b>):</p>
+    <input type="text" id="tickers" value="AAPL,MSFT,GOOGL" style="width:80%">
+    <button onclick="analyzeStocks()">Analyze</button>
+    <div id="results"></div>
+    
+    <script>
+async function analyzeStocks() {
+    const apiKey = '8CiRnKNTO9bmtQmfGseFnI62WA05wYkQ'; // Your custom API key
+    const tickerInput = document.getElementById('tickers').value;
+    const symbols = tickerInput.split(',').map(s => s.trim().toUpperCase()).filter(s => !!s);
+    if (symbols.length === 0) return;
+
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = 'Loading...';
+
+    let tableRows = '';
+    for (let symbol of symbols) {
+        try {
+            let url = `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${apiKey}`;
+            let resp = await fetch(url);
+            let data = await resp.json();
+
+            if (!data[0]) {
+                tableRows += `<tr><td colspan="6">${symbol}: No data found</td></tr>`;
+                continue;
+            }
+
+            let s = data[0];
+            let pe = s.pe !== undefined ? s.pe : '-';
+            let price = s.price !== undefined ? s.price : '-';
+            let changePct = s.changesPercentage !== undefined ? s.changesPercentage : '-';
+            
+            // Basic scoring
+            let longTermScore = (pe && pe > 0) ? (1/pe*50).toFixed(2) : '-';
+            let shortTermScore = (changePct && !isNaN(changePct)) ? (changePct*2).toFixed(2) : '-';
+
+            tableRows += `<tr>
+                <td>${symbol}</td>
+                <td>${price}</td>
+                <td>${pe}</td>
+                <td>${changePct}%</td>
+                <td>${longTermScore}</td>
+                <td>${shortTermScore}</td>
+            </tr>`;
+        } catch (error) {
+            tableRows += `<tr><td colspan="6">${symbol}: Error fetching data</td></tr>`;
+        }
+    }
+
+    resultsDiv.innerHTML = `
+        <table>
+            <tr>
+                <th>Symbol</th>
+                <th>Price</th>
+                <th>P/E</th>
+                <th>Change (%)</th>
+                <th>Long Term Score</th>
+                <th>Short Term Score</th>
+            </tr>
+            ${tableRows}
+        </table>
+        <p style="font-size:0.9em;color:#888;">Data provided by <b>financialmodelingprep.com</b></p>
+    `;
+}
+    </script>
+</body>
+</html>
